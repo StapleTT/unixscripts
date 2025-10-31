@@ -12,6 +12,7 @@ fi
 
 IP_ADDR="$1"
 GATEWAY="$2"
+# Default DNS to 1.1.1.1, 8.8.8.8 if none specified
 DNS1="${3:-1.1.1.1}"
 DNS2="${4:-8.8.8.8}"
 
