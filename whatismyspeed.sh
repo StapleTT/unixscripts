@@ -5,12 +5,12 @@ DATE=$(date "+%Y-%m-%d %H:%M:%S")
 
 # Is speedtest-cli even installed?
 if ! command -v speedtest-cli &> /dev/null ; then
-  echo "" && echo -e "\e[34mspeedtest-cli not found. Installing...\e[0m"
+  echo "" && echo -e "\e[94mspeedtest-cli not found. Installing...\e[0m"
   sudo apt update && sudo apt install -y speedtest-cli
 fi
 
 # Run speedtest w/ simple output
-echo "" && echo -e "\e[34mRunning internet speed test. This may take a minute...\e[0m"
+echo "" && echo -e "\e[94mRunning internet speed test. This may take a minute...\e[0m"
 
 RESULT=$(speedtest-cli)
 # Read data from result
@@ -33,19 +33,19 @@ ROUNDED=$(printf "%.0f" "$DOWNLOAD")
 case $ROUNDED in
   # Below 10 Mbps
   [0-9])
-  RECOMMENDATION="\e[31mYour speed is absolutely terrible! Time to call your ISP and demand answers!\e[0m"
+  RECOMMENDATION="\e[91mYour speed is absolutely terrible! Time to call your ISP and demand answers!\e[0m"
   ;;
   # 10-39 Mbps
   [1-3][0-9])
-  RECOMMENDATION="\e[33mYour speed is pretty rough. Maybe check your router or switch servers.\e[0m"
+  RECOMMENDATION="\e[93mYour speed is pretty rough. Maybe check your router or switch servers.\e[0m"
   ;;
   # 40-99 Mbps
   [4-9][0-9])
-  RECOMMENDATION="\e[32mNot bad! You have decent speed for most things.\e[0m"
+  RECOMMENDATION="\e[92mNot bad! You have decent speed for most things.\e[0m"
   ;;
   # 100 Mbps or more
   *)
-  RECOMMENDATION="\e[32mExcellent! You're flying across the internet.\e[0m"
+  RECOMMENDATION="\e[92mExcellent! You're flying across the internet.\e[0m"
   ;;
 esac
 
