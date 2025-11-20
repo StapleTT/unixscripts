@@ -7,81 +7,110 @@ if [ "$EUID" != 0 ] ; then
   exit 126
 fi
 
-if [ -z "$1" ] ; then
+NETWORK=$1
+REPORT=vulnscan_$(date +"%F_$H:%M:%S").log
+
+if [ -z "$NETWORK" ] ; then
   echo "Usage: sudo $0 <ipaddr>"
+  echo "Example: sudo $0 192.168.1.0/24"
   exit 1
 fi
 
-OUTPUT="scan_$1.txt"
+echo -e "[*] \e[94mScanning for hosts on $NETWORK...\e[0m"
+echo -e "[*] \e[94mFull report will be written to $REPORT\e[0m"
+echo "Network Vulnerability Report: $(date +"%F_%H-%M-%S")" > $REPORT
+echo "" >> $REPORT
 
-# scan target & save to output variable
-echo -e "[*] \e[94mStarting scan on $1...\e[0m"
-nmap -A -Pn "$1" -oN "$OUTPUT" >/dev/null 2>&1
+# discover active hosts
+ACTIVE_HOSTS=$(nmap -sn "$NETWORK" -oG - | grep "Up" | awk '{print $2}')
+TOTAL_HOSTS=$(echo $ACTIVE_HOSTS | wc -w)
 
-echo ""
-
-OS=$(grep "OS details" "$OUTPUT" | sed 's/OS details: //')
-MAC=$(grep "MAC Address" "$OUTPUT" | awk '{print $3}')
-VENDOR=$(grep "MAC Address" "$OUTPUT" | cut -d'(' -f2 | tr -d ')')
-
-echo "==============================="
-echo "          Device Info          "
-echo "==============================="
-echo "OS Guess:    ${OS:-Unknown}"
-echo "MAC Address: ${MAC:-Unknown}"
-echo "Vendor:      ${VENDOR:-Unknown}"
-
-# parse open ports
-OPEN_PORTS=$(grep -E "^[0-9]+/tcp" "$OUTPUT" \
-  | awk '{print $1}' \
-  | cut -d'/' -f1 \
-  | grep -E "^[0-9]+$" \
-  | paste -sd " " -)
-
-if [ -z "$OPEN_PORTS" ] ; then
-  echo -e "[!] \e[91mNo open ports detected.\e[0m"
+if [ -z "$ACTIVE_HOSTS" ] ; then
+  echo -e "[!] \e[91mNo devices found.\e[0m"
   exit 0
 fi
 
-echo "Open ports:  $OPEN_PORTS"
+echo -e "[*] \e[94mFound devices ($TOTAL_HOSTS):\e[0m"
+echo "$ACTIVE_HOSTS"
 echo ""
 
-# rate vulnerability score by open ports
-SEVERE=(20 21 23 139 445 3389)
-MEDIUM=(22 80 443 8080 8443 3306 5900)
-LOW=(53 111)
+sleep 1
 
-SCORE=0
+COUNT=0
+# loop through each device
+for IP in $ACTIVE_HOSTS ; do
+  COUNT=$((COUNT + 1))
+  echo -e "[*] \e[94mScanning $IP... ($COUNT/$TOTAL_HOSTS)\e[0m"
+  TARGET=$IP
+  TMP_OUTPUT=$(mktemp)
 
-for port in $OPEN_PORTS ; do
-  if printf '%s\n' "${SEVERE[@]}" | grep -qx "$port" ; then
-    SCORE=$((SCORE+3))
-  elif printf '%s\n' "${MEDIUM[@]}" | grep -qx "$port" ; then
-    SCORE=$((SCORE+2))
-  elif printf '%s\n' "${LOW[@]}" | grep -qx "$port" ; then
-    SCORE=$((SCORE+1))
+  # scan target & save to output variable
+  nmap -A -Pn "$TARGET" -oN "$TMP_OUTPUT" >/dev/null 2>&1
+ 
+  OS=$(grep "OS details" "$TMP_OUTPUT" | sed 's/OS details: //')
+  MAC=$(grep "MAC Address" "$TMP_OUTPUT" | awk '{print $3}')
+  VENDOR=$(grep "MAC Address" "$TMP_OUTPUT" | cut -d'(' -f2 | tr -d ')')
+   
+  # parse open ports
+  OPEN_PORTS=$(grep -E "^[0-9]+/tcp" "$TMP_OUTPUT" \
+    | awk '{print $1}' \
+    | cut -d'/' -f1 \
+    | grep -E "^[0-9]+$" \
+    | paste -sd " " -)
+ 
+  # rate vulnerability score by open ports
+  SEVERE=(20 21 23 139 445 3389)
+  MEDIUM=(22 80 443 8080 8443 3306 5900)
+  LOW=(53 111)
+ 
+  SCORE=0
+ 
+  for port in $OPEN_PORTS ; do
+    if printf '%s\n' "${SEVERE[@]}" | grep -qx "$port" ; then
+      SCORE=$((SCORE+3))
+    elif printf '%s\n' "${MEDIUM[@]}" | grep -qx "$port" ; then
+      SCORE=$((SCORE+2))
+    elif printf '%s\n' "${LOW[@]}" | grep -qx "$port" ; then
+      SCORE=$((SCORE+1))
+    fi
+  done
+ 
+  # if the score is above 10, round down (it shouldn't even be that high)
+  if [ "$SCORE" -gt 10 ] ; then
+    SCORE=10
   fi
+ 
+  case $SCORE in
+    # 0-3 (Low)
+    [0-3])
+    RISK="\e[92mLow risk"
+    ;;
+    # 4-6 (Medium)
+    [4-6])
+    RISK="\e[93mMedium risk"
+    ;;
+    # 7-10 (High)
+    *)
+    RISK="\e[91mHigh risk"
+    ;;
+  esac
+
+  echo "Device Info for $TARGET" >> $REPORT
+  {
+    echo "OS Guess:    ${OS:-Unknown}"
+    echo "MAC Address: ${MAC:-Unknown}"
+    echo "Vendor:      ${VENDOR:-Unknown}"
+    if [ -z "$OPEN_PORTS" ] ; then
+      echo -e "[!] \e[91mNo open ports detected.\e[0m"
+    else
+      echo "Open ports:  $OPEN_PORTS"
+      echo "Vulnerability Score: $SCORE/10"
+      echo -e "Risk: $RISK\e[0m"
+    fi
+    echo ""
+  } | tee -a $REPORT
+
+  rm "$TMP_OUTPUT"
 done
 
-# if the score is above 10, round down (it shouldn't even be that high)
-if [ "$SCORE" -gt 10 ] ; then
-  SCORE=10
-fi
-
-case $SCORE in
-  # 0-3 (Low)
-  [0-3])
-  RISK="\e[92mLow risk"
-  ;;
-  # 4-6 (Medium)
-  [4-6])
-  RISK="\e[93mMedium risk"
-  ;;
-  # 7-10 (High)
-  *)
-  RISK="\e[91mHigh risk"
-  ;;
-esac
-
-echo "Vulnerability Score: $SCORE/10"
-echo -e "Risk: $RISK\e[0m"
+echo -e "\e[92mDone! Results have been logged to $REPORT\e[0m"
