@@ -27,9 +27,9 @@ SCAN=$(nmap -sn $RANGE)
 echo ""
 
 # format the output (i sure do wish -oG gave mac addresses)
-echo "----------------------------------------"
-echo "IP Address --- MAC Address --- Est. Name"
-echo "----------------------------------------"
+echo "--------------------------------------------"
+echo "IP Address ----- MAC Address ----- Est. Name"
+echo "--------------------------------------------"
 
 # this stack overflow thread is the only reason i figured it out
 # https://stackoverflow.com/questions/51865475/parsing-nmap-output
@@ -44,6 +44,6 @@ echo "$SCAN" | awk '
     mac=$3
     vendor = substr($0, index($0, "(") + 1)
     gsub(/\)/, "", vendor)
-    print ip " --- " mac " --- " vendor
+    print ip " ----- " mac " ----- " vendor
   }
 '
