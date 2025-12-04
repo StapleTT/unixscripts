@@ -76,28 +76,28 @@ fi
 echo ""
 
 # apply static ip
-echo -e "[*] ${BLUE}Applying static IP using nmcli...${RESET}"
+echo -e "[*] ${BLUE}Applying static IP...${RESET}"
 
-nmcli connection modify "$CON_NAME" ipv4.addresses "$IP_CLEAN/$NETMASK"
-nmcli connection modify "$CON_NAME" ipv4.gateway "$GATEWAY"
-nmcli connection modify "$CON_NAME" ipv4.method manual
-nmcli connection modify "$CON_NAME" ipv4.dns "$GATEWAY 8.8.8.8"
+nmcli con modify "$CON_NAME" ipv4.addresses "$IP_CLEAN/$NETMASK"
+nmcli con modify "$CON_NAME" ipv4.gateway "$GATEWAY"
+nmcli con modify "$CON_NAME" ipv4.dns "$GATEWAY 8.8.8.8"
+nmcli con modify "$CON_NAME" ipv4.method manual
 
-nmcli connection up "$CON_NAME" &>/dev/null
+nmcli con up "$CON_NAME" &>/dev/null
 echo -e "[+] ${GREEN}Static IP successfully applied!${RESET}"
 
 echo ""
 
-# ask the user if they want to change their ip address
+# ask the user if they want to change their mac address
 echo -e "[?] ${YELLOW}Would you like to change your MAC address? (y/n):${RESET}"
 read -p "> " CHANGE_MAC
 
 if [[ "$CHANGE_MAC" =~ ^[Yy]$ ]]; then
+  echo ""
   echo -e "${BLUE}Rules:${RESET}"
   echo " - Must be 6 pairs of hex digits"
-  echo " - Example: AA:BB:CC:DD:EE:FF"
   echo " - First hex pair must be even"
-  echo ""
+  echo " - Example: AA:BB:CC:DD:EE:FF"
 
   # ask user for new mac address
   echo -e "[?] ${YELLOW}Enter new MAC address:${RESET}"
