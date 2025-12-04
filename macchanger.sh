@@ -78,10 +78,10 @@ echo ""
 # apply static ip
 echo -e "[*] ${BLUE}Applying static IP...${RESET}"
 
-nmcli con modify "$CON_NAME" ipv4.addresses "$IP_CLEAN/$NETMASK"
-nmcli con modify "$CON_NAME" ipv4.gateway "$GATEWAY"
-nmcli con modify "$CON_NAME" ipv4.dns "$GATEWAY 8.8.8.8"
-nmcli con modify "$CON_NAME" ipv4.method manual
+nmcli con mod "$CON_NAME" ipv4.addresses "$IP_CLEAN/$NETMASK"
+nmcli con mod "$CON_NAME" ipv4.gateway "$GATEWAY"
+nmcli con mod "$CON_NAME" ipv4.dns "$GATEWAY 8.8.8.8"
+nmcli con mod "$CON_NAME" ipv4.method manual
 
 nmcli con up "$CON_NAME" &>/dev/null
 echo -e "[+] ${GREEN}Static IP successfully applied!${RESET}"
@@ -103,7 +103,7 @@ if [[ "$CHANGE_MAC" =~ ^[Yy]$ ]]; then
   echo -e "[?] ${YELLOW}Enter new MAC address:${RESET}"
   read -p "> " NEW_MAC
 
-  # validate MAC format
+  # validate mac format
   if [[ ! "$NEW_MAC" =~ ^([A-Fa-f0-9]{2}:){5}[A-Fa-f0-9]{2}$ ]]; then
     echo -e "[!] ${RED}Invalid MAC address. Exiting script...${RESET}"
     exit 1
@@ -118,7 +118,7 @@ if [[ "$CHANGE_MAC" =~ ^[Yy]$ ]]; then
     exit 1
   fi
 
-  # apply MAC address
+  # apply mac address
   ip link set "$IFACE" down
   ip link set "$IFACE" address "$NEW_MAC"
   ip link set "$IFACE" up
