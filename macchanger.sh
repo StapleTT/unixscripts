@@ -55,7 +55,7 @@ if [[ "$NEW_SUBNET" != "$SUBNET" ]]; then
   exit 1
 fi
 
-# check if new ip is already taken
+# check if new ip is already taken, remove the netmask if the user added it (we already got it)
 IP_CLEAN=$(echo "$NEW_IP" | cut -d'/' -f1)
 
 echo -e "[*] ${BLUE}Checking if IP $IP_CLEAN is available...${RESET}"
